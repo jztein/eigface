@@ -2,5 +2,7 @@
 *.png
 *.jpg
 *.npz
+*.gif
 faces
-faces/*
+faces*/*
+yale*/*

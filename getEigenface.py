@@ -23,6 +23,7 @@ class Eigenfacer:
         self.cov = None
         self.eigenfaces = []
 
+        #img = misc.imread(folder + '/subject13.wink.gif')
         img = misc.imread(folder + '/1a.jpg')
         self.imsize = img.shape
 
@@ -44,7 +45,7 @@ class Eigenfacer:
     def makeFaceVectors(self, files):
         # vectorize all images
         for f in files:
-            img = misc.imread(f)
+            img = misc.imread(f, flatten=True)
             self.vecfaces.append(np.asarray(img).reshape(-1))
         np.savez_compressed(self.vecfaceFile, *(self.vecfaces))
 
@@ -110,6 +111,11 @@ class Eigenfacer:
 
         eigVals, eigVecs = np.linalg.eigh(self.cov)
 
+        # need to reverse because eigh() returns smallest to biggest
+        # eigenvalues
+        eigVals = eigVals[::-1]
+        eigVecs = eigVecs[::-1]
+
         print eigVals.shape, self.mat.T.shape
         print "========"
         print eigVecs.shape
@@ -137,9 +143,10 @@ class Eigenfacer:
         print 'Eigface', eigface
         print 'SHAPE:', eigface.shape
         im = np.reshape(eigface, self.imsize)
-        plt.imsave('eigFaceImage.png', im, cmap=pylab.gray())
-        plt.imshow(im, cmap=pylab.gray())
-        plt.show()
+        picName = 'eigFaceImage' + str(idx) + '.png'
+        plt.imsave(picName, im, cmap=pylab.gray())
+        #plt.imshow(im, cmap=pylab.gray())
+        #plt.show()
 
     def readEigFaces(self):
         self.npzfile = np.load(self.eigfaceFile, mmap_mode=None)
@@ -150,12 +157,15 @@ class Eigenfacer:
 if __name__ == '__main__':
     e = Eigenfacer('vec1.npz', 'eig1.npz', './faces', '.jpg')
     #e = Eigenfacer('vec1.npz', 'eig1.npz', './faces', '.jpg', iAmNew=True)
+    #e = Eigenfacer('vec2.npz', 'eig2.npz', './yalefaces', '.gif')
+    #e = Eigenfacer('vec2.npz', 'eig2.npz', './yalefaces', '.gif', iAmNew=True)
     #e.printFaceVector()
 
-    #e.getEigenfaces()
+    e.getEigenfaces()
 
     e.readEigFaces()
 
-    for i in xrange(10):
+    for i in xrange(120):
         e.showEigFace(i)
+
 
