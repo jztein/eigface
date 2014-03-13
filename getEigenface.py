@@ -23,8 +23,8 @@ class Eigenfacer:
         self.cov = None
         self.eigenfaces = []
 
-        #img = misc.imread(folder + '/subject13.wink.gif')
-        img = misc.imread(folder + '/1a.jpg')
+        img = misc.imread(folder + '/subject13.wink.gif')
+        #img = misc.imread(folder + '/1a.jpg')
         self.imsize = img.shape
 
         if iAmNew:
@@ -116,6 +116,12 @@ class Eigenfacer:
         eigVals = eigVals[::-1]
         eigVecs = eigVecs[::-1]
 
+        '''Show scree plot of eigenvalues
+        plt.figure(1)
+        plt.plot(eigVals, 'ro')
+        plt.show()
+        '''
+
         print eigVals.shape, self.mat.T.shape
         print "========"
         print eigVecs.shape
@@ -128,11 +134,11 @@ class Eigenfacer:
 
         for i in xrange(numEigenfaces):
             eigFace = eigFaces[:,i]
-            for i in xrange(numPixels):
-                if eigFace[i] > 1:
-                    eigFace[i] = 1
-                elif eigFace[i] < 0:
-                    eigFace[i] = 0
+            for k in xrange(numPixels):
+                if eigFace[k] > 1:
+                    eigFace[k] = 1
+                elif eigFace[k] < 0:
+                    eigFace[k] = 0
             self.eigenfaces.append(eigFace)
 
         print "Finished getting eigenfaces..."
@@ -155,17 +161,17 @@ class Eigenfacer:
             self.eigenfaces.append(self.npzfile[v])
 
 if __name__ == '__main__':
-    e = Eigenfacer('vec1.npz', 'eig1.npz', './faces', '.jpg')
+    #e = Eigenfacer('vec1.npz', 'eig1.npz', './faces', '.jpg')
     #e = Eigenfacer('vec1.npz', 'eig1.npz', './faces', '.jpg', iAmNew=True)
-    #e = Eigenfacer('vec2.npz', 'eig2.npz', './yalefaces', '.gif')
+    e = Eigenfacer('vec2.npz', 'eig2.npz', './yalefaces', '.gif')
     #e = Eigenfacer('vec2.npz', 'eig2.npz', './yalefaces', '.gif', iAmNew=True)
     #e.printFaceVector()
 
     e.getEigenfaces()
 
     e.readEigFaces()
-
-    for i in xrange(120):
+    '''
+    for i in xrange(10):
         e.showEigFace(i)
-
+    '''
 
