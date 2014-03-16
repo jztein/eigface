@@ -62,6 +62,8 @@ class Eigenfacer:
         self.mean = np.float32(self.mean)
         print 'MEAN:', self.mean
 
+        np.savez_compressed("meanYale.npz", self.mean) 
+
         imMean = np.reshape(self.mean, self.imsize)
 
         print '****', self.imsize
@@ -113,8 +115,8 @@ class Eigenfacer:
 
         # need to reverse because eigh() returns smallest to biggest
         # eigenvalues
-        eigVals = eigVals[::-1]
-        eigVecs = eigVecs[::-1]
+        #eigVals = eigVals[::-1]
+        #eigVecs = eigVecs[::-1]
 
         '''Show scree plot of eigenvalues
         plt.figure(1)
@@ -142,7 +144,7 @@ class Eigenfacer:
             self.eigenfaces.append(eigFace)
 
         print "Finished getting eigenfaces..."
-        np.savez_compressed(self.eigfaceFile, *(self.eigenfaces))
+        #np.savez_compressed(self.eigfaceFile, *(self.eigenfaces))
 
     def showEigFace(self, idx=0):
         eigface = np.float32(self.eigenfaces[idx])
@@ -170,8 +172,8 @@ if __name__ == '__main__':
     e.getEigenfaces()
 
     e.readEigFaces()
-    '''
-    for i in xrange(10):
+    
+    for i in xrange(100):
         e.showEigFace(i)
-    '''
+
 

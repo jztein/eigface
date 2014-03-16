@@ -8,3 +8,5 @@ faces*/*
 yale*/*
 *.zip
 *.tar
+*.pyc
+0*/*
