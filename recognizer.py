@@ -9,13 +9,20 @@ import glob
 from getEigenface import keyNpz
 
 M255 = np.float32(255)
+K = 130
+THRESHOLD_CLASS_FACE = 0.1
 
-bor = False
+bor = True
+loadPrior = True
+#loadPrior = False
 if bor:
     TEST_NAME = 's13_wink'
     SAMPLE_IMAGE_NAME='yalefaces/subject13.wink.gif'
-    SAMPLE_MEAN = 'meanYale.npz'
-    EIG_x_NPZ = 'eigTest.npz'
+    SAMPLE_MEAN = 'meanY.npz'
+    if loadPrior:
+        EIG_x_NPZ = 'normalized_eigY.npz'
+    else:
+        EIG_x_NPZ = 'eigY.npz'
 else:
     TEST_NAME = 'face1a'
     SAMPLE_IMAGE_NAME='faces/1a.jpg'
@@ -26,9 +33,10 @@ else:
 # Composes new images too
 class Recognizer:
     def __init__(self, eigfaceFile, k, sampleImage=SAMPLE_IMAGE_NAME, 
-                 meanNpz=SAMPLE_MEAN):
+                 meanNpz=SAMPLE_MEAN, loadPrior=False):
 
         self.k = k
+        self.classFaces = []
 
         img = misc.imread(SAMPLE_IMAGE_NAME)
         self.imsize = img.shape
@@ -37,6 +45,7 @@ class Recognizer:
         self.PCs = [] # principal components
         npzfile = np.load(eigfaceFile, mmap_mode=None)
         eigfs = sorted(npzfile.files, key=keyNpz)
+        #print npzfile.files
         if k >= len(eigfs):
             raise ValueError("k more than number of PC's")
 
@@ -44,7 +53,8 @@ class Recognizer:
         for i in xrange(len(eigfs)):
             ef = npzfile[eigfs[i]]
             #ef = np.float32(ef)
-            ef /= np.linalg.norm(ef)
+            if not loadPrior:
+                ef /= np.linalg.norm(ef)
             self.eigfaces.append(ef)
 
         # we got eigenfaces from smallest to largest eigenvalue
@@ -52,6 +62,9 @@ class Recognizer:
 
         for i in xrange(k):
             self.PCs.append(self.eigfaces[i])
+
+        if not loadPrior:
+            np.savez_compressed('normalized_' + eigfaceFile, *(self.eigfaces))
 
         npzfile = np.load(meanNpz, mmap_mode=None)
         self.meanVec = npzfile[npzfile.files[0]]
@@ -71,7 +84,7 @@ class Recognizer:
             plt.imshow(im, cmap=pylab.gray())
 
 
-    def represent(self, targetFilename):
+    def represent(self, targetFilename, makeFaceClass=False, coords=[]):
         print "represent!"
         targetIm = misc.imread(targetFilename)
         plt.imshow(targetIm, cmap=pylab.gray())
@@ -92,11 +105,14 @@ class Recognizer:
         #plt.figure(2)
 
         numPCs = len(self.PCs)
-        coords = []
-        for pc in self.PCs:
-            coord = diffVec.dot(pc)
-            #coord *= 10
-            coords.append(coord)
+        if not coords:
+            coords = []
+            for pc in self.PCs:
+                coord = diffVec.dot(pc)
+                coords.append(coord)
+
+            if makeFaceClass:
+                return coords
 
         print "BBBBBBBBBBBBBBBBBBB"
         print coords
@@ -107,19 +123,26 @@ class Recognizer:
         repVec = self.meanVec[:]
 
         repVec += coords[0] * self.PCs[0]
+        repIm = np.reshape(repVec, self.imsize)
+        plt.subplot(13, 10, 1)
+        plt.imshow(repIm, cmap=pylab.gray())
         for i in xrange(1, numPCs):
             pc = self.PCs[i]
             coord = coords[i]
             a = (coord * pc)
 
-            print "Brin", i
-            print a
+            #print "Brin", i
+            #print a
             repVec += a
             repIm = np.reshape(repVec, self.imsize)
             plt.imsave('brin' + str(i), repIm, cmap=pylab.gray())
+            #plt.subplot(13, 10, i)
             #plt.imshow(repIm, cmap=pylab.gray())
+            #plt.setp(repIm, 'XTickLabel', [],'XTick',[])
             #plt.show()
             #print repVec
+
+        #plt.show()
 
         repIm = np.reshape(repVec, self.imsize)
         plt.imshow(repIm, cmap=pylab.gray())
@@ -154,11 +177,48 @@ class Recognizer:
 
         plt.imshow(repIm, cmap=pylab.gray())
         plt.show()
-        plt.imsave(TEST_NAME + '_f1', repIm, cmap=pylab.gray())
+        plt.imsave(TEST_NAME + '_f1_' + str(K), repIm, cmap=pylab.gray())
         #        '''
 
+    # recognize
+    def recognize(self, target, folder):
+        targetDiffVec = self.represent(target, makeFaceClass=True)
+        vecLen = len(targetDiffVec)
+
+        self.classFaces = [] # clear
+
+        files = glob.glob(folder + '/*.gif')
+        minEuclidean = -1
+        closest = 0
+        count = 0
+        for f in files:
+            faceClass = self.represent(f, makeFaceClass=True)
+            self.classFaces.append(faceClass)
+            curEuc = 0
+            for i in xrange(vecLen):
+                curEuc += (faceClass[i]-targetDiffVec[i])**2
+            curEuc = abs(curEuc)
+            if minEuclidean > curEuc or minEuclidean < 0:
+                minEuclidean = curEuc
+                closest = count
+            count += 1
+
+        if minEuclidean < 0:
+            raise ValueError("SOMETHOING HEAOGNOUSHELY WRONG")
+
+        if minEuclidean < THRESHOLD_CLASS_FACE:
+            print 'Closest to face %d' % closest
+            self.represent(target, coords=self.classFaces[closest])
+            
+        else:
+            print "<<<<<< No match found"
+
 if __name__ == '__main__':
-    r = Recognizer(EIG_x_NPZ, 70)
+    r = Recognizer(EIG_x_NPZ, K, loadPrior=True)
+    #r = Recognizer(EIG_x_NPZ, K, loadPrior=False)
+
+    r.recognize(SAMPLE_IMAGE_NAME, 'yalefaces')
+    exit(1)
 
     show = False#True
     if show:

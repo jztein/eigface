@@ -12,7 +12,8 @@ import glob
 def keyNpz(arr_x):
     return int(arr_x[4:])
 
-SAMPLE = '/1a.jpg'
+SAMPLE = '/subject01.normal.gif'
+#SAMPLE = '/1a.jpg'
 
 class Eigenfacer:
     def __init__(self, vecFaceFile, eigFaceFile, folder='', extension='', iAmNew=False):
@@ -71,7 +72,7 @@ class Eigenfacer:
         #print imMean
 
         plt.imsave('meanImage.png', imMean, cmap=pylab.gray())
-        np.savez_compressed("mean2.npz", self.mean)
+        np.savez_compressed("meanY.npz", self.mean)
         #plt.show()
         
     def centerFaceVectors(self):
@@ -167,10 +168,11 @@ class Eigenfacer:
 
 if __name__ == '__main__':
     #e = Eigenfacer('vec1.npz', 'eig1.npz', './faces', '.jpg')
-    e = Eigenfacer('vecV2.npz', 'eigV2.npz', './faces', '.jpg', iAmNew=True)
+    #e = Eigenfacer('vecV2.npz', 'eigV2.npz', './faces', '.jpg', iAmNew=True)
     #e.printFaceVector()
 
-    #e = Eigenfacer('vecTest2.npz', 'eigTest2.npz', './yalefaces', '.gif', iAmNew=False)#True)
+    e = Eigenfacer('vecY.npz', 'eigY.npz', './yalefaces', '.gif', iAmNew=True)
+    #e = Eigenfacer('vecY.npz', 'eigY.npz', './yalefaces', '.gif')
 
     e.getEigenfaces()
 
