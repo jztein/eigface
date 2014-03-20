@@ -31,7 +31,14 @@ class Eigenfacer:
 
         if iAmNew:
             print 'Making vectorized faces'
-            files = glob.glob(folder + '/*' + extension)
+            allFiles = glob.glob(folder + '/*' + extension)
+            files = []
+            for a in allFiles:
+                if not a == 'yalefaces/subject01.happy.gif':
+                    files.append(a)
+            if len(files) < 15:
+                print "Something wronggg with globbed number"
+                exit(1)
             self.makeFaceVectors(files)
         else:
             print 'Loading face vectors'
@@ -136,16 +143,9 @@ class Eigenfacer:
         numEigenfaces = eigFaces.shape[1]
 
         for i in xrange(numEigenfaces):
-            if i < 10:
-                continue
+            #if i < 10:
+            #    continue
             eigFace = eigFaces[:,i]
-            '''
-            for i in xrange(numPixels):
-                if eigFace[i] > 1:
-                    eigFace[i] = 1
-                elif eigFace[i] < 0:
-                    eigFace[i] = 0
-                    '''
             self.eigenfaces.append(eigFace)
 
         self.eigenfaces = self.eigenfaces[::-1]
@@ -158,7 +158,7 @@ class Eigenfacer:
         #print 'Eigface', eigface
         #print 'SHAPE:', eigface.shape
         im = np.reshape(eigface, self.imsize)
-        plt.imsave('eigFaceImage'+str(i)+'.png', im, cmap=pylab.gray())
+        plt.imsave('eigFaceImage_nHappy1_'+str(i)+'.png', im, cmap=pylab.gray())
 
     def readEigFaces(self):
         self.npzfile = np.load(self.eigfaceFile, mmap_mode=None)
@@ -171,13 +171,14 @@ if __name__ == '__main__':
     #e = Eigenfacer('vecV2.npz', 'eigV2.npz', './faces', '.jpg', iAmNew=True)
     #e.printFaceVector()
 
-    e = Eigenfacer('vecY.npz', 'eigY.npz', './yalefaces', '.gif', iAmNew=True)
+    e = Eigenfacer('vec_noHappy1Y.npz', 'eig_noHappy1Y.npz', './yalefaces', '.gif', iAmNew=True)
     #e = Eigenfacer('vecY.npz', 'eigY.npz', './yalefaces', '.gif')
 
     e.getEigenfaces()
 
     #e.readEigFaces()
     #'''
-    for i in xrange(100):
+    numEigs = len(e.eigenfaces)
+    for i in xrange(numEigs):
         e.showEigFace(i)
     #'''

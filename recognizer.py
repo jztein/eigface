@@ -10,19 +10,26 @@ from getEigenface import keyNpz
 
 M255 = np.float32(255)
 K = 130
-THRESHOLD_CLASS_FACE = 0.1
+THRESHOLD_CLASS_FACE = 1.3e+35
 
 bor = True
-loadPrior = True
+noSad = False#True
 #loadPrior = False
+loadPrior = True
 if bor:
-    TEST_NAME = 's13_wink'
-    SAMPLE_IMAGE_NAME='yalefaces/subject13.wink.gif'
+    TEST_NAME = 's01_happy'
+    SAMPLE_IMAGE_NAME='yalefaces/subject01.happy.gif'
     SAMPLE_MEAN = 'meanY.npz'
     if loadPrior:
-        EIG_x_NPZ = 'normalized_eigY.npz'
+        if noSad:
+            EIG_x_NPZ = 'normalized_eig_noNormY.npz'
+        else:
+            EIG_x_NPZ = 'normalized_eig_rY.npz'
     else:
-        EIG_x_NPZ = 'eigY.npz'
+        if noSad:
+            EIG_x_NPZ = 'eig_noHappy1Y.npz'
+        else:
+            EIG_x_NPZ = 'eig_rY.npz'
 else:
     TEST_NAME = 'face1a'
     SAMPLE_IMAGE_NAME='faces/1a.jpg'
@@ -84,8 +91,11 @@ class Recognizer:
             plt.imshow(im, cmap=pylab.gray())
 
 
-    def represent(self, targetFilename, makeFaceClass=False, coords=[]):
-        print "represent!"
+    def magnifyPCs(self, factor):
+        for i in xrange(len(self.PCs)):
+            self.PCs[i] *= 1.5
+
+    def represent(self, targetFilename, makeFaceClass=False, coords=[], prefix=''):
         targetIm = misc.imread(targetFilename)
         plt.imshow(targetIm, cmap=pylab.gray())
         plt.figure(2)
@@ -114,18 +124,14 @@ class Recognizer:
             if makeFaceClass:
                 return coords
 
-        print "BBBBBBBBBBBBBBBBBBB"
-        print coords
-        print "PCPCPCPCPCPCPCPCPC"
-        print self.PCs
-
-
         repVec = self.meanVec[:]
+        repIm = np.reshape(repVec, self.imsize)
 
         repVec += coords[0] * self.PCs[0]
-        repIm = np.reshape(repVec, self.imsize)
-        plt.subplot(13, 10, 1)
-        plt.imshow(repIm, cmap=pylab.gray())
+        #repIm = np.reshape(repVec, self.imsize)
+        #plt.subplot(13, 10, 1)
+        #plt.imshow(repIm, cmap=pylab.gray())
+        #plt.imsave('brin_noNormal' + str(0), repIm, cmap=pylab.gray())
         for i in xrange(1, numPCs):
             pc = self.PCs[i]
             coord = coords[i]
@@ -134,11 +140,10 @@ class Recognizer:
             #print "Brin", i
             #print a
             repVec += a
-            repIm = np.reshape(repVec, self.imsize)
-            plt.imsave('brin' + str(i), repIm, cmap=pylab.gray())
+            #repIm = np.reshape(repVec, self.imsize)
+            #plt.imsave('brin_noNormal' + str(i), repIm, cmap=pylab.gray())
             #plt.subplot(13, 10, i)
             #plt.imshow(repIm, cmap=pylab.gray())
-            #plt.setp(repIm, 'XTickLabel', [],'XTick',[])
             #plt.show()
             #print repVec
 
@@ -150,11 +155,6 @@ class Recognizer:
         plt.figure(3)
         meaner = np.reshape(self.meanVec, self.imsize)
         plt.imshow(meaner, cmap=pylab.gray())
-        print meaner
-        print "VANDAM"
-        print repIm
-        print "STUFFER"
-        print diffIm
 
         rows = repIm.shape[0]
         cols = repIm.shape[1]
@@ -176,18 +176,27 @@ class Recognizer:
         print whites / float(count), blacks / float(count)
 
         plt.imshow(repIm, cmap=pylab.gray())
-        plt.show()
-        plt.imsave(TEST_NAME + '_f1_' + str(K), repIm, cmap=pylab.gray())
+        #plt.show()
+        plt.imsave(TEST_NAME + prefix + '_' + str(K), repIm, cmap=pylab.gray())
         #        '''
 
     # recognize
-    def recognize(self, target, folder):
+    def recognize(self, target, folder, expr=''):
         targetDiffVec = self.represent(target, makeFaceClass=True)
         vecLen = len(targetDiffVec)
 
         self.classFaces = [] # clear
 
-        files = glob.glob(folder + '/*.gif')
+        generic = '/*%s.gif' % expr
+
+        allExprfiles = glob.glob(folder + generic)
+        files = []
+        for a in allExprfiles:
+            print a
+            if not a == 'yalefaces/subject01.%s.gif' % expr:
+                files.append(a)
+            else:
+                print "gotcha"
         minEuclidean = -1
         closest = 0
         count = 0
@@ -198,33 +207,71 @@ class Recognizer:
             for i in xrange(vecLen):
                 curEuc += (faceClass[i]-targetDiffVec[i])**2
             curEuc = abs(curEuc)
+            curEuc = curEuc**2
+            print 'Euc distance:', curEuc
             if minEuclidean > curEuc or minEuclidean < 0:
                 minEuclidean = curEuc
                 closest = count
             count += 1
 
         if minEuclidean < 0:
-            raise ValueError("SOMETHOING HEAOGNOUSHELY WRONG")
+            raise ValueError("shouldn't have no min euclidean dist")
+            
 
         if minEuclidean < THRESHOLD_CLASS_FACE:
             print 'Closest to face %d' % closest
             self.represent(target, coords=self.classFaces[closest])
-            
+            return True
         else:
             print "<<<<<< No match found"
+            return False
+
+    def amI(self, target, folder, expression="surprised"):
+        return self.recognize(target, folder, expression)
+
+    def caricature(self):
+        print 'MOMO land'
+
+    def representAll(self, folder):
+        files = glob.glob(folder + '/*.gif')
+        for f in files:
+            r.represent(SAMPLE_IMAGE_NAME)
+        
+    def getAllCoords(self, folder):
+        allCoords = []
+        files = glob.glob(folder + '/*.gif')
+        sum = r.represent(files[0], makeFaceClass=True)
+        print "################################"
+        print sum
+        length = len(sum)
+        for f in files[1:]:
+            coords = r.represent(f, makeFaceClass=True)
+            print sum
+            print "################################"
+            for i in xrange(length):
+                sum[i] += abs(coords[i])
+        avg = sum[:]
+        for i in xrange(length):
+            avg[i] /= length
+
+        print "AVERGAE COORDS\n", avg
+
 
 if __name__ == '__main__':
     r = Recognizer(EIG_x_NPZ, K, loadPrior=True)
     #r = Recognizer(EIG_x_NPZ, K, loadPrior=False)
 
-    r.recognize(SAMPLE_IMAGE_NAME, 'yalefaces')
-    exit(1)
-
-    show = False#True
+    show = False
     if show:
         r.showPCs()
         plt.show()
 
-    r.represent(SAMPLE_IMAGE_NAME)
+    #print r.amI(SAMPLE_IMAGE_NAME, 'yalefaces', "sleepy")
+    r.getAllCoords('yalefaces')
+    #r.represent(SAMPLE_IMAGE_NAME)
+
+    #r.recognize(SAMPLE_IMAGE_NAME, 'yalefaces')
+    #exit(1)
+
 
 
